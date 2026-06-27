@@ -1,0 +1,10 @@
+[Interface]
+PrivateKey = {{ client_private_key }}
+Address = {{ client_ip }}/24
+DNS = {{ dns }}
+
+[Peer]
+PublicKey = {{ gateway_public_key }}
+Endpoint = {{ gateway_endpoint }}
+AllowedIPs = 10.66.66.0/24, 192.168.0.0/16
+PersistentKeepalive = 25

@@ -21,12 +21,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    network_mode: host
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://rentamac:${POSTGRES_PASSWORD:-rentamac}@db:5432/rentamac
-    ports:
-      - "8000:8000"
+      # With host networking, use localhost instead of 'db' hostname
+      DATABASE_URL: postgresql+asyncpg://rentamac:${POSTGRES_PASSWORD:-rentamac}@127.0.0.1:5432/rentamac
     depends_on:
       db:
         condition: service_healthy

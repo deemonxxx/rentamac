@@ -56,7 +56,7 @@ def _get_ssh(node: Node) -> MacNodeSSH:
     """Create SSH connection to a node's Mac.
 
     Uses reverse SSH tunnel (localhost:2222) for Mac access.
-    For future: direct VPN access when WireGuard is stable.
+    With network_mode: host, container shares host network stack.
     """
     return MacNodeSSH(host="localhost", port=2222, username="qwerty")
 

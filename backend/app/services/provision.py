@@ -168,44 +168,88 @@ class MacNodeSSH:
     def set_rustdesk_password(self, password: str) -> None:
         """Set a permanent RustDesk password on the macOS node.
 
+        RustDesk stores password as base64(sha256(password + salt)).
+        This method reads the salt from the config, computes the hash,
+        writes it back, and restarts RustDesk.
+
         Args:
-            password: The permanent password to set.
+            password: The permanent password to set (plaintext).
         """
-        safe_pw = shlex.quote(password)
+        import hashlib
+        import base64
+
         config_dir = "Library/Preferences/com.carriez.RustDesk"
-        self.run_command(
-            f"cd ~/{config_dir} && "
-            f"sed -i '' 's/^password = .*/password = {safe_pw}/' RustDesk.toml"
+        config_path = f"~/{config_dir}/RustDesk.toml"
+        abs_config = config_path.replace("~", f"/Users/{self.username}")
+
+        # 1. Read salt from config (use python3 to avoid shell quoting issues)
+        salt_output = self.run_command(
+            f"python3 -c \""
+            f"import re; "
+            f"data = open('{abs_config}').read(); "
+            f"m = re.search(r\\\"^salt = '(.+)'\\\", data, re.MULTILINE); "
+            f"print(m.group(1) if m else '')"
+            f"\"",
+            check=False,
         )
-        # Restart RustDesk to apply
+        salt = salt_output.strip()
+        if not salt:
+            raise RuntimeError(f"Cannot read RustDesk salt from {abs_config}")
+
+        # 2. Stop RustDesk BEFORE writing (it overwrites config on exit)
         self.run_command("pkill -f RustDesk 2>/dev/null || true", check=False)
         import time
-        time.sleep(3)
+        time.sleep(2)
+
+        # 3. Compute hash: base64(sha256(password + salt))
+        pw_hash = base64.b64encode(
+            hashlib.sha256((password + salt).encode()).digest()
+        ).decode()
+
+        # 4. Write hash to config (use python3 to avoid sed delimiter issues)
+        self.run_command(
+            f"python3 -c \""
+            f"import re; "
+            f"path = '{abs_config}'; "
+            f"data = open(path).read(); "
+            f"data = re.sub(r'^password = .*', 'password = \\\"{pw_hash}\\\"', data, flags=re.MULTILINE); "
+            f"open(path, 'w').write(data)"
+            f"\""
+        )
+
+        # 5. Start RustDesk
         self.run_command("open -a RustDesk 2>/dev/null || true", check=False)
         logger.info("Set RustDesk password on %s", self.host)
 
     def get_rustdesk_id(self) -> str:
         """Get the RustDesk ID from the macOS node.
 
+        Uses the RustDesk CLI --get-id command.
+
         Returns:
             The RustDesk ID as a string, or empty string if not found.
         """
         try:
             output = self.run_command(
-                "cat ~/Library/Preferences/com.carriez.RustDesk/RustDesk2.toml "
-                "| grep '^id = ' | cut -d\\\"'\\\" -f2 2>/dev/null || echo ''",
+                "/Applications/RustDesk.app/Contents/MacOS/RustDesk --get-id",
                 check=False,
             )
-            return output.strip().strip("'\"")
+            return output.strip()
         except Exception:
             return ""
 
     def clear_rustdesk_password(self) -> None:
         """Clear RustDesk password — next restart will generate a new temp password."""
         config_dir = "Library/Preferences/com.carriez.RustDesk"
+        abs_config = f"/Users/{self.username}/{config_dir}/RustDesk.toml"
         self.run_command(
-            f"cd ~/{config_dir} && "
-            f"sed -i '' 's/^password = .*/password = \"\"/' RustDesk.toml",
+            f"python3 -c \""
+            f"import re; "
+            f"path = '{abs_config}'; "
+            f"data = open(path).read(); "
+            f"data = re.sub(r'^password = .*', 'password = \\\"\\\"', data, flags=re.MULTILINE); "
+            f"open(path, 'w').write(data)"
+            f"\"",
             check=False,
         )
         self.run_command("pkill -f RustDesk 2>/dev/null || true", check=False)

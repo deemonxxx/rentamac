@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import clients, nodes, webhooks
+from app.api import clients, nodes, rustdesk, webhooks
 from app.config import settings
 from app.database import engine
 
@@ -47,6 +47,7 @@ app.add_middleware(
 # Include routers
 app.include_router(nodes.router)
 app.include_router(clients.router)
+app.include_router(rustdesk.router)
 app.include_router(webhooks.router)
 
 

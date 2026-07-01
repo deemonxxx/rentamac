@@ -54,6 +54,12 @@ class Settings(BaseSettings):
         "http://localhost:3000"
     )
 
+    # RustDesk
+    RUSTDESK_SERVER_IP: str = "89.125.30.138"
+    RUSTDESK_ID_PORT: int = 21116
+    RUSTDESK_RELAY_PORT: int = 21117
+    RUSTDESK_KEY: str = "5vfB20zg1GrdIROkejqmvydVIRj4fwXKlH+Zw3mqRGI="
+
     # Security
     SECRET_KEY: str = "change-me-in-production"
 

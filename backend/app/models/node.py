@@ -37,6 +37,9 @@ class Node(Base):
     )
     hardware: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     macos_version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    rustdesk_id: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, index=True)
+    rustdesk_password: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    ssh_port: Mapped[int] = mapped_column(default=22, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

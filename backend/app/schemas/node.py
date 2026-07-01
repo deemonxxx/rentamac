@@ -17,8 +17,10 @@ class NodeCreate(BaseModel):
     wg_ip: Optional[str] = Field(None, max_length=45, examples=["10.0.0.1"])
     wg_public_key: Optional[str] = Field(None, max_length=64)
     status: NodeStatus = NodeStatus.OFFLINE
-    hardware: Optional[str] = Field(None, examples=["Mac Mini M2, 16GB RAM, 512GB SSD"])
-    macos_version: Optional[str] = Field(None, max_length=50, examples=["14.5"])
+    hardware: Optional[str] = Field(None, examples=["Mac Mini M4, 16GB RAM, 512GB SSD"])
+    macos_version: Optional[str] = Field(None, max_length=50, examples=["15.0"])
+    rustdesk_id: Optional[str] = Field(None, max_length=20, examples=["172925881"])
+    ssh_port: int = Field(22, examples=[22])
 
 
 class NodeUpdate(BaseModel):
@@ -30,6 +32,8 @@ class NodeUpdate(BaseModel):
     status: Optional[NodeStatus] = None
     hardware: Optional[str] = None
     macos_version: Optional[str] = Field(None, max_length=50)
+    rustdesk_id: Optional[str] = Field(None, max_length=20)
+    ssh_port: Optional[int] = None
 
 
 class NodeOut(BaseModel):
@@ -44,6 +48,8 @@ class NodeOut(BaseModel):
     status: NodeStatus
     hardware: Optional[str] = None
     macos_version: Optional[str] = None
+    rustdesk_id: Optional[str] = None
+    ssh_port: int = 22
     created_at: datetime
     updated_at: datetime
 

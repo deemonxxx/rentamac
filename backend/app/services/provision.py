@@ -165,6 +165,75 @@ class MacNodeSSH:
         self.run_command(f"sudo wg-quick up {safe_name} 2>&1 || true")
         logger.info("Installed WireGuard config '%s' on %s", config_name, self.host)
 
+    def set_rustdesk_password(self, password: str) -> None:
+        """Set a permanent RustDesk password on the macOS node.
+
+        Args:
+            password: The permanent password to set.
+        """
+        safe_pw = shlex.quote(password)
+        config_dir = "Library/Preferences/com.carriez.RustDesk"
+        self.run_command(
+            f"cd ~/{config_dir} && "
+            f"sed -i '' 's/^password = .*/password = {safe_pw}/' RustDesk.toml"
+        )
+        # Restart RustDesk to apply
+        self.run_command("pkill -f RustDesk 2>/dev/null || true", check=False)
+        import time
+        time.sleep(3)
+        self.run_command("open -a RustDesk 2>/dev/null || true", check=False)
+        logger.info("Set RustDesk password on %s", self.host)
+
+    def get_rustdesk_id(self) -> str:
+        """Get the RustDesk ID from the macOS node.
+
+        Returns:
+            The RustDesk ID as a string, or empty string if not found.
+        """
+        try:
+            output = self.run_command(
+                "cat ~/Library/Preferences/com.carriez.RustDesk/RustDesk2.toml "
+                "| grep '^id = ' | cut -d\\\"'\\\" -f2 2>/dev/null || echo ''",
+                check=False,
+            )
+            return output.strip().strip("'\"")
+        except Exception:
+            return ""
+
+    def clear_rustdesk_password(self) -> None:
+        """Clear RustDesk password — next restart will generate a new temp password."""
+        config_dir = "Library/Preferences/com.carriez.RustDesk"
+        self.run_command(
+            f"cd ~/{config_dir} && "
+            f"sed -i '' 's/^password = .*/password = \"\"/' RustDesk.toml",
+            check=False,
+        )
+        self.run_command("pkill -f RustDesk 2>/dev/null || true", check=False)
+        import time
+        time.sleep(3)
+        self.run_command("open -a RustDesk 2>/dev/null || true", check=False)
+        logger.info("Cleared RustDesk password on %s", self.host)
+
+    def cleanup_client_data(self) -> None:
+        """Clean up client data between rentals.
+
+        Removes browser data, downloads, desktop files, caches,
+        keychain, and shell history. Does NOT delete the user account.
+        """
+        cmds = [
+            "rm -rf ~/Downloads/* 2>/dev/null || true",
+            "rm -rf ~/Desktop/* 2>/dev/null || true",
+            "rm -rf ~/Documents/* 2>/dev/null || true",
+            "rm -rf ~/.Trash/* 2>/dev/null || true",
+            "rm -rf ~/Library/Caches/* 2>/dev/null || true",
+            "rm -rf ~/Library/Safari/* 2>/dev/null || true",
+            "rm -rf ~/Library/Application\\ Support/Google/Chrome/Default/* 2>/dev/null || true",
+            "rm -f ~/.zsh_history ~/.bash_history 2>/dev/null || true",
+        ]
+        for cmd in cmds:
+            self.run_command(cmd, check=False)
+        logger.info("Cleaned up client data on %s", self.host)
+
     def reboot(self) -> None:
         """Reboot the macOS node."""
         self.run_command("sudo shutdown -r now", check=False)
